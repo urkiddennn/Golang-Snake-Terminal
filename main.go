@@ -17,7 +17,7 @@ const (
 	GRID_HEIGHT = 20
 	SQUARE_CHAR = GREEN + "■"
 	EMPTY_CHAR  = " "
-	FRAME_RATE  = 30 * time.Millisecond
+	FRAME_RATE  = 50 * time.Millisecond
 )
 
 // it's where we put our GRIDs
@@ -26,6 +26,11 @@ type Grid [][]string
 // player x and Y axis
 type Player struct {
 	x, y int
+}
+
+// track the current direction of the player
+type Direction struct {
+	dx, dy int
 }
 
 // simple screen, it is short and readable but not scalable I think
@@ -83,6 +88,8 @@ func main() {
 	// setting the player at the center of ther grid
 	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
 
+	dir := Direction{0, 1}
+
 	keyEvents, err := keyboard.GetKeys(10)
 	if err != nil {
 		fmt.Println("Error get keys", err)
@@ -90,6 +97,7 @@ func main() {
 	}
 
 	for {
+
 		select {
 		case event := <-keyEvents:
 			if event.Err != nil {
@@ -97,38 +105,43 @@ func main() {
 				return
 			}
 			if event.Rune == 'w' || event.Rune == 'W' {
-				player.y--
-
+				if dir.dy != -1 {
+					dir.dy -= 1
+				}
 				// Rune is the key that is pressed
-			}
-			if event.Rune == 's' || event.Rune == 'S' {
-				player.y++
-			}
-			if event.Rune == 'a' || event.Rune == 'A' {
-				player.x--
-			}
-			if event.Rune == 'd' || event.Rune == 'D' {
+			} else if event.Rune == 's' || event.Rune == 'S' {
+				if dir.dy != 1 {
+					dir.dy += 1
+				}
+			} else if event.Rune == 'a' || event.Rune == 'A' {
+				if dir.dx != 1 {
+					dir.dx += 1
+				}
+			} else if event.Rune == 'd' || event.Rune == 'D' {
 				player.x++
 			}
 		default:
-			// no key pressed
-			dx += 1
+			// Player move to that direction
+			player.y += dir.dy
+			player.x = dir.dx
+
+			// Bound collision
+			if player.y < 0 {
+				player.y = 0 // bound up
+			} else if player.y >= GRID_HEIGHT {
+				player.y = GRID_HEIGHT - 1 // bound bottom
+			} else if player.x < 0 {
+				player.x = 0
+			} else if player.x >= GRID_WIDTH {
+				player.x = GRID_WIDTH - 1
+			}
 
 		}
 
 		// collision detectection of the bound edge
-		if player.y < 0 {
-			player.y = 0 // bound up
-		} else if player.y >= GRID_HEIGHT {
-			player.y = GRID_HEIGHT - 1 // bound bottom
-		} else if player.x < 0 {
-			player.x = 0
-		} else if player.x >= GRID_WIDTH {
-			player.x = GRID_WIDTH - 1
-		}
 
 		drawGrid(grid, player)
-		fmt.Printf("%v", dx)
+
 		time.Sleep(FRAME_RATE)
 	}
 }
