@@ -2,18 +2,22 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/eiannone/keyboard"
 )
 
 // In this Video I will screate a terminal snake game(I hope I can)
 
 // print the square on agiven tile of the grid
 const (
+	GREEN       = "\033[32m"
 	GRID_WIDTH  = 30
-	GRID_HEIGHT = 30
-	SQUARE_CHAR = "■"
+	GRID_HEIGHT = 20
+	SQUARE_CHAR = GREEN + "■"
 	EMPTY_CHAR  = " "
-	FRAME_RATE  = 50 * time.Millisecond
+	FRAME_RATE  = 30 * time.Millisecond
 )
 
 // it's where we put our GRIDs
@@ -65,11 +69,38 @@ func drawGrid(grid Grid, player Player) {
 }
 
 func main() {
+	// initialize the Keyboard
+	err := keyboard.Open()
+	if err != nil {
+		// should we return or print? just use log
+		log.Fatal(err)
+	}
+	defer keyboard.Close()
+
 	grid := newGrid()
 	// setting the player at the center of ther grid
 	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
+
+	keyEvents, err := keyboard.GetKeys(10)
+	if err != nil {
+		fmt.Println("Error get keys", err)
+		return
+	}
+
 	for {
-		clearScreen()
+		select {
+		case event := <-keyEvents:
+			if event.Err != nil {
+				fmt.Println("Keyboard event error: ", event.Err)
+				return
+			}
+			if event.Rune == 'w' || event.Rune == 'W' {
+				player.y--
+				// Rune is the key that is pressed
+			}
+		default:
+			// no key pressed
+		}
 
 		drawGrid(grid, player)
 		time.Sleep(FRAME_RATE)
