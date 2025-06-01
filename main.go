@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/eiannone/keyboard"
@@ -13,9 +14,11 @@ import (
 // print the square on agiven tile of the grid
 const (
 	GREEN       = "\033[32m"
+	RED         = "\033[31m"
 	GRID_WIDTH  = 30
 	GRID_HEIGHT = 20
 	SQUARE_CHAR = GREEN + "■"
+	APPLE_CHAR  = RED + "◘"
 	EMPTY_CHAR  = " "
 	FRAME_RATE  = 200 * time.Millisecond
 )
@@ -57,11 +60,16 @@ func newGrid() Grid { // return a GRid[][] refresh the location
 }
 
 // draw the grid on the terminal
-func drawGrid(grid Grid, player Player) {
+func drawGrid(grid Grid, player Player, apple Apple) {
 	clearScreen()
 
 	if player.y >= 0 && player.y < GRID_HEIGHT && player.x >= 0 && player.x < GRID_WIDTH {
 		grid[player.y][player.x] = SQUARE_CHAR // set that position on that grid to be the square
+	}
+	if apple.x == player.x && apple.y == player.y {
+		apple.x = rand.Intn(GRID_WIDTH)
+		apple.y = rand.Intn(GRID_HEIGHT)
+		grid[apple.x][apple.y] = APPLE_CHAR
 	}
 
 	for _, row := range grid {
@@ -77,10 +85,19 @@ func drawGrid(grid Grid, player Player) {
 	}
 }
 
+// Apple function for spawning
+func spawnApple(grid Grid, apple Apple) {
+	apple.x = rand.Intn(GRID_WIDTH - 1)
+	apple.y = rand.Intn(GRID_HEIGHT - 1)
+	grid[apple.x][apple.y] = APPLE_CHAR
+	fmt.Printf("Random")
+}
+
 // collision edge
 func main() {
 	// dy := 0
 	// initialize the Keyboard
+
 	err := keyboard.Open()
 	if err != nil {
 		// should we return or print? just use log
@@ -91,6 +108,9 @@ func main() {
 	grid := newGrid()
 	// setting the player at the center of ther grid
 	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
+
+	// apple
+	apple := Apple{x: rand.Intn(GRID_WIDTH - 1), y: rand.Intn(GRID_HEIGHT - 1)}
 
 	dir := Direction{-1, 0}
 
@@ -143,7 +163,7 @@ func main() {
 				player.x = GRID_WIDTH - 1
 			}
 
-			drawGrid(grid, player)
+			drawGrid(grid, player, apple)
 
 			time.Sleep(FRAME_RATE)
 
