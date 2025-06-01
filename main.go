@@ -17,7 +17,7 @@ const (
 	GRID_HEIGHT = 20
 	SQUARE_CHAR = GREEN + "■"
 	EMPTY_CHAR  = " "
-	FRAME_RATE  = 50 * time.Millisecond
+	FRAME_RATE  = 200 * time.Millisecond
 )
 
 // it's where we put our GRIDs
@@ -31,6 +31,10 @@ type Player struct {
 // track the current direction of the player
 type Direction struct {
 	dx, dy int
+}
+
+type Apple struct {
+	x, y int
 }
 
 // simple screen, it is short and readable but not scalable I think
@@ -73,8 +77,8 @@ func drawGrid(grid Grid, player Player) {
 	}
 }
 
+// collision edge
 func main() {
-	dx := 0
 	// dy := 0
 	// initialize the Keyboard
 	err := keyboard.Open()
@@ -88,7 +92,7 @@ func main() {
 	// setting the player at the center of ther grid
 	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
 
-	dir := Direction{0, 1}
+	dir := Direction{-1, 0}
 
 	keyEvents, err := keyboard.GetKeys(10)
 	if err != nil {
@@ -97,35 +101,38 @@ func main() {
 	}
 
 	for {
-
 		select {
 		case event := <-keyEvents:
 			if event.Err != nil {
 				fmt.Println("Keyboard event error: ", event.Err)
 				return
-			}
-			if event.Rune == 'w' || event.Rune == 'W' {
+			} else if event.Rune == 'w' || event.Rune == 'W' {
 				if dir.dy != -1 {
 					dir.dy -= 1
+					dir.dx = 0
 				}
 				// Rune is the key that is pressed
 			} else if event.Rune == 's' || event.Rune == 'S' {
 				if dir.dy != 1 {
 					dir.dy += 1
+					dir.dx = 0
 				}
 			} else if event.Rune == 'a' || event.Rune == 'A' {
-				if dir.dx != 1 {
-					dir.dx += 1
+				if dir.dx != -1 {
+					dir.dx -= 1
+					dir.dy = 0
 				}
 			} else if event.Rune == 'd' || event.Rune == 'D' {
-				player.x++
+				if dir.dx != 1 {
+					dir.dx += 1
+					dir.dy = 0
+				}
 			}
 		default:
 			// Player move to that direction
 			player.y += dir.dy
-			player.x = dir.dx
+			player.x += dir.dx
 
-			// Bound collision
 			if player.y < 0 {
 				player.y = 0 // bound up
 			} else if player.y >= GRID_HEIGHT {
@@ -136,12 +143,10 @@ func main() {
 				player.x = GRID_WIDTH - 1
 			}
 
+			drawGrid(grid, player)
+
+			time.Sleep(FRAME_RATE)
+
 		}
-
-		// collision detectection of the bound edge
-
-		drawGrid(grid, player)
-
-		time.Sleep(FRAME_RATE)
 	}
 }
