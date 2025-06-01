@@ -69,6 +69,8 @@ func drawGrid(grid Grid, player Player) {
 }
 
 func main() {
+	dx := 0
+	// dy := 0
 	// initialize the Keyboard
 	err := keyboard.Open()
 	if err != nil {
@@ -96,6 +98,7 @@ func main() {
 			}
 			if event.Rune == 'w' || event.Rune == 'W' {
 				player.y--
+
 				// Rune is the key that is pressed
 			}
 			if event.Rune == 's' || event.Rune == 'S' {
@@ -109,6 +112,8 @@ func main() {
 			}
 		default:
 			// no key pressed
+			dx += 1
+
 		}
 
 		// collision detectection of the bound edge
@@ -123,6 +128,7 @@ func main() {
 		}
 
 		drawGrid(grid, player)
+		fmt.Printf("%v", dx)
 		time.Sleep(FRAME_RATE)
 	}
 }
