@@ -98,8 +98,27 @@ func main() {
 				player.y--
 				// Rune is the key that is pressed
 			}
+			if event.Rune == 's' || event.Rune == 'S' {
+				player.y++
+			}
+			if event.Rune == 'a' || event.Rune == 'A' {
+				player.x--
+			}
+			if event.Rune == 'd' || event.Rune == 'D' {
+				player.x++
+			}
 		default:
 			// no key pressed
+		}
+
+		if player.y < 0 {
+			player.y = 0 // bound up
+		} else if player.y >= GRID_HEIGHT {
+			player.y = GRID_HEIGHT - 1 // bound bottom
+		} else if player.x < 0 {
+			player.x = 0
+		} else if player.x >= GRID_WIDTH {
+			player.x = GRID_WIDTH - 1
 		}
 
 		drawGrid(grid, player)
