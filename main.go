@@ -111,6 +111,7 @@ func main() {
 			// no key pressed
 		}
 
+		// collision detectection of the bound edge
 		if player.y < 0 {
 			player.y = 0 // bound up
 		} else if player.y >= GRID_HEIGHT {
