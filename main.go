@@ -18,9 +18,9 @@ const (
 	GRID_WIDTH  = 30
 	GRID_HEIGHT = 20
 	SQUARE_CHAR = GREEN + "■"
-	APPLE_CHAR  = RED + "◘"
+	APPLE_CHAR  = RED + "■"
 	EMPTY_CHAR  = " "
-	FRAME_RATE  = 200 * time.Millisecond
+	FRAME_RATE  = 250 * time.Millisecond
 )
 
 // it's where we put our GRIDs
@@ -63,20 +63,27 @@ func newGrid() Grid { // return a GRid[][] refresh the location
 func drawGrid(grid Grid, player Player, apple Apple) {
 	clearScreen()
 
+	// grid
+	// grid = newGrid()
+
 	if player.y >= 0 && player.y < GRID_HEIGHT && player.x >= 0 && player.x < GRID_WIDTH {
 		grid[player.y][player.x] = SQUARE_CHAR // set that position on that grid to be the square
 	}
-	if apple.x == player.x && apple.y == player.y {
-		apple.x = rand.Intn(GRID_WIDTH)
-		apple.y = rand.Intn(GRID_HEIGHT)
+
+	if apple.y >= 0 && apple.y < GRID_HEIGHT && apple.x >= 0 && apple.x < GRID_WIDTH {
 		grid[apple.x][apple.y] = APPLE_CHAR
 	}
 
 	for _, row := range grid {
-		for _, char := range row {
-			fmt.Printf("%s", char)
+		if len(row) == 0 {
+			fmt.Println("Out of bounds")
+		} else {
+			for _, char := range row {
+				fmt.Printf("%s", char)
+			}
+			fmt.Println()
+
 		}
-		fmt.Println()
 	}
 
 	// complete opposite
@@ -86,16 +93,12 @@ func drawGrid(grid Grid, player Player, apple Apple) {
 }
 
 // Apple function for spawning
-func spawnApple(grid Grid, apple Apple) {
-	apple.x = rand.Intn(GRID_WIDTH - 1)
-	apple.y = rand.Intn(GRID_HEIGHT - 1)
-	grid[apple.x][apple.y] = APPLE_CHAR
-	fmt.Printf("Random")
+func spawnApple() Apple {
+	return Apple{x: rand.Intn(GRID_WIDTH), y: rand.Intn(GRID_HEIGHT)}
 }
 
 // collision edge
 func main() {
-	// dy := 0
 	// initialize the Keyboard
 
 	err := keyboard.Open()
@@ -110,10 +113,9 @@ func main() {
 	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
 
 	// apple
-	apple := Apple{x: rand.Intn(GRID_WIDTH - 1), y: rand.Intn(GRID_HEIGHT - 1)}
+	apple := spawnApple()
 
 	dir := Direction{-1, 0}
-
 	keyEvents, err := keyboard.GetKeys(10)
 	if err != nil {
 		fmt.Println("Error get keys", err)
@@ -152,6 +154,11 @@ func main() {
 			// Player move to that direction
 			player.y += dir.dy
 			player.x += dir.dx
+
+			// collsion to apple
+			if player.x == apple.x && player.y == apple.y {
+				apple = spawnApple()
+			}
 
 			if player.y < 0 {
 				player.y = 0 // bound up
