@@ -64,14 +64,14 @@ func drawGrid(grid Grid, player Player, apple Apple) {
 	clearScreen()
 
 	// grid
-	// grid = newGrid()
+	// tempGrid := newGrid()
 
 	if player.y >= 0 && player.y < GRID_HEIGHT && player.x >= 0 && player.x < GRID_WIDTH {
 		grid[player.y][player.x] = SQUARE_CHAR // set that position on that grid to be the square
 	}
 
 	if apple.y >= 0 && apple.y < GRID_HEIGHT && apple.x >= 0 && apple.x < GRID_WIDTH {
-		grid[apple.x][apple.y] = APPLE_CHAR
+		grid[apple.y][apple.x] = APPLE_CHAR
 	}
 
 	for _, row := range grid {
