@@ -9,9 +9,6 @@ import (
 	"github.com/eiannone/keyboard"
 )
 
-// In this Video I will screate a terminal snake game(I hope I can)
-
-// print the square on agiven tile of the grid
 const (
 	GREEN       = "\033[32m"
 	RED         = "\033[31m"
@@ -23,15 +20,16 @@ const (
 	FRAME_RATE  = 250 * time.Millisecond
 )
 
-// it's where we put our GRIDs
 type Grid [][]string
 
-// player x and Y axis
-type Player struct {
+type Position struct {
 	x, y int
 }
 
-// track the current direction of the player
+type Player struct {
+	body []Position // Store snake segments
+}
+
 type Direction struct {
 	dx, dy int
 }
@@ -40,85 +38,80 @@ type Apple struct {
 	x, y int
 }
 
-// simple screen, it is short and readable but not scalable I think
 func clearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
 
-func newGrid() Grid { // return a GRid[][] refresh the location
+func newGrid() Grid {
 	grid := make(Grid, GRID_HEIGHT)
-
 	for i := range grid {
-		//
 		grid[i] = make([]string, GRID_WIDTH)
 		for j := range grid[i] {
-			// making that part of the grid to an empty space
 			grid[i][j] = EMPTY_CHAR
 		}
 	}
 	return grid
 }
 
-// draw the grid on the terminal
 func drawGrid(grid Grid, player Player, apple Apple) {
 	clearScreen()
 
-	// grid
-	// tempGrid := newGrid()
+	// Create a fresh grid for drawing
+	tempGrid := newGrid()
 
-	if player.y >= 0 && player.y < GRID_HEIGHT && player.x >= 0 && player.x < GRID_WIDTH {
-		grid[player.y][player.x] = SQUARE_CHAR // set that position on that grid to be the square
-	}
-
-	if apple.y >= 0 && apple.y < GRID_HEIGHT && apple.x >= 0 && apple.x < GRID_WIDTH {
-		grid[apple.y][apple.x] = APPLE_CHAR
-	}
-
-	for _, row := range grid {
-		if len(row) == 0 {
-			fmt.Println("Out of bounds")
-		} else {
-			for _, char := range row {
-				fmt.Printf("%s", char)
-			}
-			fmt.Println()
-
+	// Draw snake body
+	for _, segment := range player.body {
+		if segment.y >= 0 && segment.y < GRID_HEIGHT && segment.x >= 0 && segment.x < GRID_WIDTH {
+			tempGrid[segment.y][segment.x] = SQUARE_CHAR
 		}
 	}
 
-	// complete opposite
-	if player.y >= 0 && player.y < GRID_HEIGHT && player.x >= 0 && player.x < GRID_WIDTH {
-		grid[player.y][player.x] = EMPTY_CHAR // set that position on that grid to be empty
+	// Draw apple
+	if apple.y >= 0 && apple.y < GRID_HEIGHT && apple.x >= 0 && apple.x < GRID_WIDTH {
+		tempGrid[apple.y][apple.x] = APPLE_CHAR
+	}
+
+	for _, row := range tempGrid {
+		for _, char := range row {
+			fmt.Printf("%s", char)
+		}
+		fmt.Println()
 	}
 }
 
-// Apple function for spawning
-func spawnApple() Apple {
-	return Apple{x: rand.Intn(GRID_WIDTH), y: rand.Intn(GRID_HEIGHT)}
+func spawnApple(player Player) Apple {
+	for {
+		apple := Apple{x: rand.Intn(GRID_WIDTH), y: rand.Intn(GRID_HEIGHT)}
+		// Ensure apple doesn't spawn on snake
+		collision := false
+		for _, segment := range player.body {
+			if apple.x == segment.x && apple.y == segment.y {
+				collision = true
+				break
+			}
+		}
+		if !collision {
+			return apple
+		}
+	}
 }
 
-// collision edge
 func main() {
-	// initialize the Keyboard
-
 	err := keyboard.Open()
 	if err != nil {
-		// should we return or print? just use log
 		log.Fatal(err)
 	}
 	defer keyboard.Close()
 
 	grid := newGrid()
-	// setting the player at the center of ther grid
-	player := Player{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}
-
-	// apple
-	apple := spawnApple()
-
+	// Initialize player with one segment at the center
+	player := Player{body: []Position{{x: GRID_WIDTH / 2, y: GRID_HEIGHT / 2}}}
+	apple := spawnApple(player)
 	dir := Direction{-1, 0}
+
 	keyEvents, err := keyboard.GetKeys(10)
 	if err != nil {
-		fmt.Println("Error get keys", err)
+		fmt.Println("Error getting keys:", err)
 		return
 	}
 
@@ -126,54 +119,75 @@ func main() {
 		select {
 		case event := <-keyEvents:
 			if event.Err != nil {
-				fmt.Println("Keyboard event error: ", event.Err)
+				fmt.Println("Keyboard event error:", event.Err)
 				return
-			} else if event.Rune == 'w' || event.Rune == 'W' {
+			}
+			switch event.Rune {
+			case 'w', 'W':
+				if dir.dy != 1 { // Prevent moving directly opposite
+					dir = Direction{0, -1}
+				}
+			case 's', 'S':
 				if dir.dy != -1 {
-					dir.dy -= 1
-					dir.dx = 0
+					dir = Direction{0, 1}
 				}
-				// Rune is the key that is pressed
-			} else if event.Rune == 's' || event.Rune == 'S' {
-				if dir.dy != 1 {
-					dir.dy += 1
-					dir.dx = 0
-				}
-			} else if event.Rune == 'a' || event.Rune == 'A' {
-				if dir.dx != -1 {
-					dir.dx -= 1
-					dir.dy = 0
-				}
-			} else if event.Rune == 'd' || event.Rune == 'D' {
+			case 'a', 'A':
 				if dir.dx != 1 {
-					dir.dx += 1
-					dir.dy = 0
+					dir = Direction{-1, 0}
+				}
+			case 'd', 'D':
+				if dir.dx != -1 {
+					dir = Direction{1, 0}
+				}
+			case 'q', 'Q':
+				return // Quit game
+			}
+
+		default:
+			// Move snake
+			head := player.body[0]
+			newHead := Position{x: head.x + dir.dx, y: head.y + dir.dy}
+
+			// Check boundaries
+			if newHead.x < 0 {
+				newHead.x = 0
+			} else if newHead.x >= GRID_WIDTH {
+				newHead.x = GRID_WIDTH - 1
+			}
+			if newHead.y < 0 {
+				newHead.y = 0
+			} else if newHead.y >= GRID_HEIGHT {
+				newHead.y = GRID_HEIGHT - 1
+			}
+
+			// Check collision with self
+			for _, segment := range player.body {
+				if newHead.x == segment.x && newHead.y == segment.y {
+					fmt.Println("Game Over: Collided with self!")
+					return
 				}
 			}
-		default:
-			// Player move to that direction
-			player.y += dir.dy
-			player.x += dir.dx
 
-			// collsion to apple
-			if player.x == apple.x && player.y == apple.y {
-				apple = spawnApple()
+			// Move snake by adding new head
+			newBody := []Position{newHead}
+			grow := false
+
+			// Check for apple collision
+			if newHead.x == apple.x && newHead.y == apple.y {
+				grow = true
+				apple = spawnApple(player)
 			}
 
-			if player.y < 0 {
-				player.y = 0 // bound up
-			} else if player.y >= GRID_HEIGHT {
-				player.y = GRID_HEIGHT - 1 // bound bottom
-			} else if player.x < 0 {
-				player.x = 0
-			} else if player.x >= GRID_WIDTH {
-				player.x = GRID_WIDTH - 1
+			// Add previous segments (excluding last if not growing)
+			if grow {
+				newBody = append(newBody, player.body...)
+			} else {
+				newBody = append(newBody, player.body[:len(player.body)-1]...)
 			}
+			player.body = newBody
 
 			drawGrid(grid, player, apple)
-
 			time.Sleep(FRAME_RATE)
-
 		}
 	}
 }
